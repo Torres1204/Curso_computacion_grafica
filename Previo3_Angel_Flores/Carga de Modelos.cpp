@@ -118,7 +118,13 @@ int main( )
     Model rocag((char*)"Models/Campamento/rocag.obj");
     
     Model rocap((char*)"Models/Campamento/rocap.obj");
-    
+
+    Model lampara((char*)"Models/Campamento/lampara.obj");
+
+    Model fogata((char*)"Models/Campamento/fogata.obj");
+
+    Model luna((char*)"Models/Campamento/luna.obj");
+
     // Game loop
     while (!glfwWindowShouldClose(window))
     {
@@ -217,6 +223,27 @@ int main( )
         model = glm::scale(model, glm::vec3(3.0f, 3.0f, 3.0f));
         glUniformMatrix4fv(glGetUniformLocation(shader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
         rocag.Draw(shader);
+
+        //Lampara
+        model = glm::mat4(1);
+        model = glm::translate(model, glm::vec3(-12.0f, -1.0f, -4.0f));
+        model = glm::scale(model, glm::vec3(0.035f, 0.035f, 0.035f));  // Reducida significativamente
+        glUniformMatrix4fv(glGetUniformLocation(shader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+        lampara.Draw(shader);
+
+        //Fogata
+        model = glm::mat4(1);
+        model = glm::translate(model, glm::vec3(12.0f, -1.0f, 4.0f));
+        model = glm::scale(model, glm::vec3(3.0f, 3.0f, 3.0f));  // Reducida significativamente
+        glUniformMatrix4fv(glGetUniformLocation(shader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+        fogata.Draw(shader);
+
+        //Luna
+        model = glm::mat4(1);
+        model = glm::translate(model, glm::vec3(12.0f, 95.0f, 4.0f));
+        model = glm::scale(model, glm::vec3(95.0f, 95.0f, 95.0f));  // Reducida significativamente
+        glUniformMatrix4fv(glGetUniformLocation(shader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+        luna.Draw(shader);
         
         // Swap the buffers
         glfwSwapBuffers( window );
