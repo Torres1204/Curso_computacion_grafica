@@ -1,6 +1,6 @@
 //Ángel Joel Flores Torres
-//Previo 10 
-//25/10/2025
+//Practica 10 
+//27/10/2025
 //318312857
 
 #include <iostream>
@@ -102,16 +102,33 @@ float vertices[] = {
 
 glm::vec3 Light1 = glm::vec3(0);
 
-//Variables de animación
-float rotBall = 0;
+//Variables auxiliares para el perro y pelota 
+float iniDog = 0.0f;
+float iniBall = 0.0f;
+float speed = 1.0f;          // Velocidad de movimiento
+float SPEED_LEVELS[] = { 1.0f, 4.0f, 6.0f, 9.0f };
+int   SPEED_INDEX = 0;
+
+//Valiables para la pelota 
+float xBall = 1.0f;
+float zBall = 1.0f;
+float yBall = 0.0f;
+float rotBall = iniBall;
 bool AnimBall = false;
 
-// Variables para animación vertical de la pelota
-float ballPosY = 0.0f;           // Posición inicial 
-float ballMinY = 0.0f;            // Altura mínima 
-float ballMaxY = 2.0f;            // Altura máxima 
-float ballSpeed = 0.03f;          // Velocidad de movimiento
-bool ballMovingUp = true;         // Dirección del movimiento
+//Variables para el perro 
+float xDog = -1.0f;
+float zDog = -1.0f;
+float yDog = 0.0f;
+float rotDog = iniDog;
+bool AnimDog = false;
+float angle = 0.0f;
+float angleBall = 0.0f;
+
+//Variables para el rebote de la pelota 
+bool salto = false;   // Controla si están en el aire
+bool subiendo = true; // Controla si están subiendo o bajando
+float saltoVel = 1.2f; // Velocidad del salto
 
 // Deltatime
 GLfloat deltaTime = 0.0f;	// Time between current frame and last frame
@@ -271,29 +288,30 @@ int main()
 
 		glm::mat4 model(1);
 
-		//Carga de modelo 
+		//Carga de modelos
+		// Piso
 		view = camera.GetViewMatrix();
 		model = glm::mat4(1);
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		Piso.Draw(lightingShader);
 
+		//Perro
 		model = glm::mat4(1);
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		glUniform1i(glGetUniformLocation(lightingShader.Program, "transparency"), 0);
+		model = glm::translate(model, glm::vec3(xDog, yDog, zDog));
+		model = glm::rotate(model, angle, glm::vec3(0.0f, 1.0f, 0.0f));
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		Dog.Draw(lightingShader);
 
-		// Dibujar la pelota con animación vertical
+		// Pelota
 		model = glm::mat4(1);
 		glEnable(GL_BLEND);//Activa la funcionalidad para trabajar el canal alfa
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		glUniform1i(glGetUniformLocation(lightingShader.Program, "transparency"), 1);
-
-		// Aplicar traslación vertical basada en la animación
-		model = glm::translate(model, glm::vec3(0.0f, ballPosY, 0.0f));
-
-		// Aplicar rotación
-		model = glm::rotate(model, glm::radians(rotBall), glm::vec3(0.0f, 1.0f, 0.0f));
-
+		model = glm::translate(model, glm::vec3(xBall, yBall, zBall));
+		model = glm::rotate(model, angleBall, glm::vec3(0.0f, 1.0f, 0.0f));
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		Ball.Draw(lightingShader);
 		glDisable(GL_BLEND);  //Desactiva el canal alfa 
@@ -422,38 +440,71 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
 	if (keys[GLFW_KEY_N])
 	{
 		AnimBall = !AnimBall;
+		AnimDog = !AnimDog;
+		salto = false; 
+	}
+
+	// Aumentar velocidad global con una sola tecla (V) 
+	if (key == GLFW_KEY_V && action == GLFW_PRESS) {
+		SPEED_INDEX = (SPEED_INDEX + 1) % (sizeof(SPEED_LEVELS) / sizeof(SPEED_LEVELS[0]));
+		speed = SPEED_LEVELS[SPEED_INDEX];
+		std::cout << "Velocidad x" << speed << std::endl;
 	}
 }
 
 void Animation() {
+	const float baseAngularStep = 0.002f;
+	const float angularStep = baseAngularStep * speed;
+	const float saltoVelEff = saltoVel * speed;
+
 	if (AnimBall)
 	{
-		// Animación de rotación
-		rotBall += 0.2f;
+		rotBall -= angularStep;
+		if (rotBall < -2 * 3.14f) rotBall += 2 * 3.14f; 
+	}
 
-		// Animación de movimiento vertical
-		if (ballMovingUp)
-		{
-			// Mover hacia arriba
-			ballPosY += ballSpeed;
+	// Posición de la pelota (trayectoria circular)
+	xBall = 1.6f * cos(rotBall);
+	zBall = 1.6f * sin(rotBall);
 
-			// Si alcanza la altura máxima, cambiar dirección
-			if (ballPosY >= ballMaxY)
-			{
-				ballPosY = ballMaxY;
-				ballMovingUp = false;
+	angleBall = atan2(-sin(rotBall), cos(rotBall));  
+
+	//Animación de la rotación del perro 
+	if (AnimDog)
+	{
+		rotDog += angularStep;
+		if (rotDog > 2 * 3.14f) rotDog -= 2 * 3.14f; 
+	}
+
+	xDog = 1.6f * cos(rotDog);
+	zDog = 1.6f * sin(rotDog);
+
+	angle = atan2(-sin(rotDog), cos(rotDog));  
+
+	//Animación del salto de perro y rebote de pelota
+	if (AnimDog) {
+		//Detecta cuando xBall = xDog y zBall = zDog para generar el salto
+		if (abs(xDog - xBall) < 0.1f && abs(zDog - zBall) < 0.1f && !salto) {
+			salto = true;
+			subiendo = true;
+		}
+	}
+
+	if (salto) {
+		if (subiendo) {
+			yDog += saltoVelEff * deltaTime;
+			yBall += saltoVelEff * deltaTime;
+			if (yDog >= 0.5f) {  // Altura del salto
+				subiendo = false;  // Empieza a bajar
 			}
 		}
-		else
-		{
-			// Mover hacia abajo
-			ballPosY -= ballSpeed;
-
-			// Si alcanza la altura mínima, cambiar dirección
-			if (ballPosY <= ballMinY)
-			{
-				ballPosY = ballMinY;
-				ballMovingUp = true;
+		else {
+			yDog -= saltoVelEff * deltaTime;
+			yBall -= saltoVelEff * deltaTime;
+			if (yDog <= 0.0f) {  // Aterrizan
+				yDog = 0.0f;
+				yBall = 0.0f;
+				salto = false;  // Termina el salto
 			}
 		}
 	}
