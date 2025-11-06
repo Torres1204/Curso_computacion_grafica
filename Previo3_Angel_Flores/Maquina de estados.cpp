@@ -1,6 +1,6 @@
 //Ángel Joel Flores Torres
-//Prrevio 11 
-//02/11/2025
+//Practica 11 
+//05/11/2025
 //318312857
 
 #include <iostream>
@@ -22,7 +22,6 @@
 
 //Load Models
 #include "SOIL2/SOIL2.h"
-
 
 // Other includes
 #include "Shader.h"
@@ -101,8 +100,6 @@ float vertices[] = {
 	   -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
 };
 
-
-
 glm::vec3 Light1 = glm::vec3(0);
 //Anim
 float rotBall = 0.0f;
@@ -117,8 +114,10 @@ float tail = 0.0f;
 glm::vec3 dogPos (0.0f,0.0f,0.0f);
 float dogRot = 0.0f;
 bool step = false;
-
-
+int stage = 0;
+float tagRot = 0.0f;
+float angleDiff = 0.0f;
+bool DogR = false;
 
 // Deltatime
 GLfloat deltaTime = 0.0f;	// Time between current frame and last frame
@@ -169,8 +168,6 @@ int main()
 	// Define the viewport dimensions
 	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
-
-
 	Shader lightingShader("Shader/lighting.vs", "Shader/lighting.frag");
 	Shader lampShader("Shader/lamp.vs", "Shader/lamp.frag");
 	
@@ -184,8 +181,6 @@ int main()
 	Model B_LeftLeg((char*)"Models/B_LeftLegDog.obj");
 	Model Piso((char*)"Models/piso.obj");
 	Model Ball((char*)"Models/ball.obj");
-
-
 
 	// First, set the container's VAO (and VBO)
 	GLuint VBO, VAO;
@@ -232,8 +227,6 @@ int main()
 		
 		glm::mat4 modelTemp = glm::mat4(1.0f); //Temp
 		
-	
-
 		// Use cooresponding shader when setting uniforms/drawing objects
 		lightingShader.Use();
 
@@ -257,7 +250,6 @@ int main()
 		lightColor.y= abs(sin(glfwGetTime() *Light1.y));
 		lightColor.z= sin(glfwGetTime() *Light1.z);
 
-		
 		glUniform3f(glGetUniformLocation(lightingShader.Program, "pointLights[0].position"), pointLightPositions[0].x, pointLightPositions[0].y, pointLightPositions[0].z);
 		glUniform3f(glGetUniformLocation(lightingShader.Program, "pointLights[0].ambient"), lightColor.x,lightColor.y, lightColor.z);
 		glUniform3f(glGetUniformLocation(lightingShader.Program, "pointLights[0].diffuse"), lightColor.x,lightColor.y,lightColor.z);
@@ -265,7 +257,6 @@ int main()
 		glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[0].constant"), 1.0f);
 		glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[0].linear"), 0.045f);
 		glUniform1f(glGetUniformLocation(lightingShader.Program, "pointLights[0].quadratic"),0.075f);
-
 
 		// SpotLight
 		glUniform3f(glGetUniformLocation(lightingShader.Program, "spotLight.position"), camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
@@ -279,7 +270,6 @@ int main()
 		glUniform1f(glGetUniformLocation(lightingShader.Program, "spotLight.cutOff"), glm::cos(glm::radians(12.0f)));
 		glUniform1f(glGetUniformLocation(lightingShader.Program, "spotLight.outerCutOff"), glm::cos(glm::radians(18.0f)));
 		
-
 		// Set material properties
 		glUniform1f(glGetUniformLocation(lightingShader.Program, "material.shininess"), 5.0f);
 
@@ -296,10 +286,7 @@ int main()
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
-
 		glm::mat4 model(1);
-
-	
 		
 		//Carga de modelo 
         view = camera.GetViewMatrix();	
@@ -310,48 +297,54 @@ int main()
 		model = glm::mat4(1);
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		glUniform1i(glGetUniformLocation(lightingShader.Program, "transparency"), 0);
+		
 		//Body
 		modelTemp= model = glm::translate(model, dogPos);
 		modelTemp= model = glm::rotate(model, glm::radians(dogRot), glm::vec3(0.0f, 1.0f, 0.0f));
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		DogBody.Draw(lightingShader);
+		
 		//Head
 		model = modelTemp;
 		model = glm::translate(model, glm::vec3(0.0f, 0.093f, 0.208f));
 		model = glm::rotate(model, glm::radians(head), glm::vec3(0.0f, 0.0f, 1.0f));
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		HeadDog.Draw(lightingShader);
+		
 		//Tail 
 		model = modelTemp;
 		model = glm::translate(model, glm::vec3(0.0f, 0.026f, -0.288f));
 		model = glm::rotate(model, glm::radians(tail), glm::vec3(0.0f, 0.0f, -1.0f)); 
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model)); 
 		DogTail.Draw(lightingShader);
+		
 		//Front Left Leg
 		model = modelTemp;
 		model = glm::translate(model, glm::vec3(0.112f, -0.044f, 0.074f));
 		model = glm::rotate(model, glm::radians(FLegs), glm::vec3(-1.0f, 0.0f, 0.0f)); 
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		F_LeftLeg.Draw(lightingShader);
+		
 		//Front Right Leg
 		model = modelTemp; 
 		model = glm::translate(model, glm::vec3(-0.111f, -0.055f, 0.074f));
 		model = glm::rotate(model, glm::radians(FLegs), glm::vec3(1.0f, 0.0f, 0.0f));
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		F_RightLeg.Draw(lightingShader);
+		
 		//Back Left Leg
 		model = modelTemp; 
 		model = glm::translate(model, glm::vec3(0.082f, -0.046, -0.218)); 
 		model = glm::rotate(model, glm::radians(RLegs), glm::vec3(1.0f, 0.0f, 0.0f)); 
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model)); 
 		B_LeftLeg.Draw(lightingShader);
+		
 		//Back Right Leg
 		model = modelTemp; 
 		model = glm::translate(model, glm::vec3(-0.083f, -0.057f, -0.231f));
 		model = glm::rotate(model, glm::radians(RLegs), glm::vec3(-1.0f, 0.0f, 0.0f));
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		B_RightLeg.Draw(lightingShader); 
-
 
 		model = glm::mat4(1);
 		glEnable(GL_BLEND);//Avtiva la funcionalidad para trabajar el canal alfa
@@ -364,7 +357,6 @@ int main()
 		glDisable(GL_BLEND);  //Desactiva el canal alfa 
 		glBindVertexArray(0);
 	
-
 		// Also draw the lamp object, again binding the appropriate shader
 		lampShader.Use();
 		// Get location objects for the matrices on the lamp shader (these could be different on a different shader)
@@ -381,26 +373,21 @@ int main()
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		// Draw the light object (using light's vertex attributes)
 		
-			model = glm::mat4(1);
-			model = glm::translate(model, pointLightPositions[0]);
-			model = glm::scale(model, glm::vec3(0.2f)); // Make it a smaller cube
-			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-			glBindVertexArray(VAO);
-			glDrawArrays(GL_TRIANGLES, 0, 36);
+		model = glm::mat4(1);
+		model = glm::translate(model, pointLightPositions[0]);
+		model = glm::scale(model, glm::vec3(0.2f)); // Make it a smaller cube
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		glBindVertexArray(VAO);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
 		
 		glBindVertexArray(0);
-
-
 
 		// Swap the screen buffers
 		glfwSwapBuffers(window);
 	}
 
-
 	// Terminate GLFW, clearing any resources allocated by GLFW.
 	glfwTerminate();
-
-
 
 	return 0;
 }
@@ -408,7 +395,6 @@ int main()
 // Moves/alters the camera positions based on user input
 void DoMovement()
 {
-
 	// Camera controls
 	if (keys[GLFW_KEY_W] || keys[GLFW_KEY_UP])
 	{
@@ -506,10 +492,9 @@ void KeyCallback(GLFWwindow *window, int key, int scancode, int action, int mode
 	}
 	if (keys[GLFW_KEY_B])
 	{
-		dogAnim = 1;
+		AnimDog = !AnimDog;
 
 	}
-	
 }
 void Animation() {
 	if (AnimBall)
@@ -518,46 +503,79 @@ void Animation() {
 		//printf("%f", rotBall);
 	}
 	
-	if (AnimDog)
-	{
-		rotDog -= 0.6f;
-		//printf("%f", rotBall);
-	}
-	if (dogAnim == 1) { //Animación caminar
-		if (!step) {
-			RLegs += 0.3f;
-			FLegs += 0.3f;
-			head += 0.3f;
-			tail += 0.3f;
-			if (RLegs > 15.0f) {
-				step = true;
-			}
-		}
-		else
-		{
-			RLegs -= 0.3f;
-			FLegs -= 0.3f;
-			head -= 0.3f;
-			tail -= 0.3f;
-			if (RLegs < -15.0f) {
-				step = false;
-			}
+	if (AnimDog) { //Inicio de animación
+
+		float dogMoveSpeed = 0.002f;
+
+		//Ciclo para generar las condiciones de cada segmento del recorrido
+		switch (stage) {
+
+			case 0:  // Camina hacia enfrente
+				dogPos.z += dogMoveSpeed;
+				if (dogPos.z >= 2.0f) {          
+					stage = 1;                  // Cambiar al siguiente segmento
+					tagRot = 270.0f;             
+					DogR = true;               // verifica que se encuentra rotando
+				}
+				break;
+
+			case 1:  // Camina hacia la izquierda 
+				dogPos.x -= dogMoveSpeed;
+				if (dogPos.x <= -1.8f) {         
+					stage = 2;                  // Cambiar al siguiente segmento
+					tagRot = 180.0f;             
+					DogR = true;
+				}
+				break;
+
+			case 2:  // Camina hacia atrás (-z)
+				dogPos.z -= dogMoveSpeed;
+				if (dogPos.z <= -1.5f) {         
+					stage = 3;
+					tagRot = 45.0f;              
+					DogR = true;
+				}
+				break;
+
+			case 3:  // Diagonal de regreso al origen 
+				dogPos.x += dogMoveSpeed;
+				dogPos.z += dogMoveSpeed;
+				if (dogPos.x >= 0.0f && dogPos.z >= 0.0f) {  
+					stage = 0;
+					tagRot = 0.0f;               // rotación para regresar a la posición inicial
+					DogR = true;
+				}
+				break;
 		}
 
-		// Condición para limitar el movimiento del perro
-		if (dogPos.z < 2.0f) { // Límite del borde en el eje Z
-			dogPos.z += 0.005; // Movimiento hacia adelante
-
+		// Animación de rotación del perro 
+		if (DogR) {
+			angleDiff = tagRot - dogRot;
+			while (angleDiff > 180.0f)  angleDiff -= 360.0f;
+			while (angleDiff < -180.0f) angleDiff += 360.0f;
+			dogRot += angleDiff * 0.05f;
+			if (fabs(dogRot - tagRot) < 0.01f) {
+				DogR = false;
+			}
 		}
-		else
+		float legSpeed = 0.3f;
+
+		// Ciclo de patas, cabeza y cola 
+		if (!step) 
 		{
-			// Detener la animación si el perro ha llegado al límite
-			dogAnim = 0; 
-			rotDog = 0.0f; 
-			RLegs = 0.0f;   
-			FLegs = 0.0f;
-			head = 0.0f;    
-			tail = 0.0f;    
+			RLegs += legSpeed;
+			FLegs += legSpeed;
+			head += legSpeed;
+			tail += legSpeed;
+			if (RLegs > 15.0f) step = true;
+		}
+		else 
+		{
+			RLegs -= legSpeed;
+			FLegs -= legSpeed;
+			head -= legSpeed;
+			tail -= legSpeed;
+			if (RLegs < -15.0f) step = false;
 		}
 	}
 }
